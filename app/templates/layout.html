@@ -1,0 +1,44 @@
+<html>
+<head>
+    {% if title %}
+    <title>{{title}}</title>
+    {% else %}
+    <title>Default Title</title>
+    {% endif %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>
+    <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+</head>
+<body>
+
+</ul>
+  <ul class="navbar">
+  {% if home %}
+    <li><a href="{{ url_for('index') }}" class="active">Home</a></li>
+  {% else %}
+    <li><a href="{{ url_for('index') }}">Home</a></li>
+  {% endif %}
+
+  {% if profile %}
+    <li><a href="{{ url_for('user', nickname=g.user.nickname) }}" class="active">My Profile</a></li>
+  {% else %}
+    <li><a href="{{ url_for('user', nickname=g.user.nickname) }}">My Profile</a></li>
+  {% endif %}
+
+    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+  </ul>
+  <div class="body">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+  </div>
+
+</body>
+</html>

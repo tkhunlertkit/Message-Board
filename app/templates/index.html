@@ -1,0 +1,200 @@
+
+{% extends "layout.html" %}
+
+{% set home = True %}
+
+{% block content %}
+  <h1>Hi, {{ user.nickname }}!</h1>
+  <!-- {% include 'post.html' %} -->
+
+  <div class="table" id="message_board">
+  </div>
+  <form onSubmit="formSubmit()" id="form">
+    <table class="middle">
+      <tr>
+        <td>
+          <input type="text" id="text_body" size="50"><br>
+          <input type="button" name="Submit" value="Send" />
+        </td>
+          <td><img src="{{ user.avatar(50) }}"/></td>
+      </tr>
+    </table>
+  </form>
+  <div id="test">
+  </div>
+
+  <script>
+    var myVar = setInterval(update, 1000);
+    var mb = document.getElementById("message_board");
+    var x = document.getElementById("text_body").autofocus = true;
+    var user_id = "{{ g.user.id }}";
+    var last_post_id_seen = 0;
+    var count = 0;
+    var MAX_COUNT = 9;
+    var posts = [];
+    var users = [];
+    var request = {
+                url: '',
+                type: '',
+                contentType: "application/json",
+                accepts: "application/json",
+                cache: false,
+                dataType: 'json',
+                data: '',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("Authorization",
+                        "Basic " + btoa(self.username + ":" + self.password));
+                },
+                error: function(jqXHR) {
+                    console.log("ajax error " + jqXHR.status);
+                }
+              };
+
+
+    update();
+
+    function update() {
+      var uri = "http://localhost:5000/api/posts/" + last_post_id_seen;
+      request['url'] = uri;
+      request['type'] = 'GET';
+      request['data'] = '';
+      $.ajax(request).done( function(data) {
+        for (var i=0; i<data.posts.length; i++) {
+          posts.push(data.posts[i]);
+          count++;
+        }
+        constructTable(posts);
+
+
+      });
+    }
+
+    function trimMessage(posts) {
+      while (count > MAX_COUNT) {
+        posts.shift();
+        count--;
+      }
+    }
+
+    function constructTable(delta) {
+      var h = parseInt(window.innerHeight * 0.7);
+
+      // trimMessage(posts);
+      var prevUserId = "";
+      mb.innerHTML = "";
+      mb.setAttribute("style", "height:" + h + "px");
+      for (var i=0; i<delta.length; i++) {
+        if (user_id == delta[i].user_id) {
+          if (prevUserId != delta[i].user_id) {
+            var tbl = document.createElement('table');
+            tbl.className = "right";
+            tbl.appendChild(createRightHeaderElement(delta[i]));
+          }
+
+          var tr = createLeftPostBody(delta[i]);
+        }
+        else {
+          if (prevUserId != delta[i].user_id) {
+            var tbl = document.createElement('table');
+            tbl.className = "left";
+            tbl.appendChild(createLeftHeaderElement(delta[i]));
+          }
+          var tr = createMyPost(delta[i]);
+        }
+        prevUserId = delta[i].user_id;
+        tbl.appendChild(tr);
+        mb.appendChild(tbl);
+
+
+      }
+      if (last_post_id_seen < delta[delta.length-1].id) {
+        last_post_id_seen = delta[delta.length-1].id;
+        mb.scrollTop = mb.scrollHeight;
+      }
+    }
+
+    function createLeftHeaderElement(delta) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.innerHTML = "<img src='{{ user.avatar(50) }}'/>";
+      tr.appendChild(td);
+      td = document.createElement('td');
+      var text = "<i>" + delta.nickname + " says:</i><br>" +
+                  "<i style='color: grey;'>'" + delta.timestamp + "</i>";
+      td.innerHTML = text;
+      tr.appendChild(td);
+      return tr;
+    }
+
+    function createRightHeaderElement(delta) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td = document.createElement('td');
+      var text = "<i>" + delta.nickname + " says:</i><br>" +
+                  "<i style='color: grey;'>'" + delta.timestamp + "</i>";
+      td.innerHTML = text;
+      tr.appendChild(td);
+      td = document.createElement('td');
+      td.innerHTML = "<img src='{{ user.avatar(50) }}'/>";
+      tr.appendChild(td);
+      return tr;
+    }
+
+    /**
+      return <tr> tag of the left element of the table
+    **/
+    function createLeftPostBody(delta) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td = document.createElement('td');
+      var text = delta.body;
+      td.innerHTML = text;
+      tr.appendChild(td);
+      td = document.createElement('td');
+      td.innerHTML = "";
+      tr.appendChild(td);
+      return tr;
+    }
+
+    /**
+      return <tr> tag of the right element of the table
+    **/
+    function createMyPost(delta) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.innerHTML = "";
+      tr.appendChild(td);
+      td = document.createElement('td');
+      var text = delta.body;
+      td.innerHTML = text;
+      tr.appendChild(td);
+      return tr;
+    }
+
+    function formSubmit() {
+      var uri = "http://localhost:5000/api/posts/";
+      request['url'] = uri;
+      var body = document.getElementById('text_body').value;
+      request['data'] = JSON.stringify({ body: body });
+      document.getElementById("text_body").value = '';
+      request['type'] = 'POST';
+      $.ajax(request).done( function(data) {
+        if (data != null) {
+          for (var i=0; i<data.posts.length; i++) {
+            posts.push(data.posts[i]);
+          }
+          count += data.posts.length;
+          constructTable(posts, count);
+        }
+      });
+      request['type'] = 'GET';
+      return false;
+    }
+
+    $('#form').submit(function () {
+     formSubmit();
+     return false;
+    });
+  </script>
+
+{% endblock %}

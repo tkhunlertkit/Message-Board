@@ -1,0 +1,9 @@
+#!/bin/bash
+if [ -z "$1" ]; then
+	echo usage: $0 comment
+	exit
+fi
+set -x
+git add .
+git commit -m "$1"
+git push -u origin master
